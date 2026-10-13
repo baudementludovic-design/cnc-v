@@ -756,7 +756,14 @@ function game(g){
    <div class="players r">${pb}</div>
  </div>`;
 }
-const encounterOpen=new Map();
+const ENCOUNTER_STATE_KEY='cncv_encounter_open_v1';
+const encounterOpen=(()=>{try{return new Map(JSON.parse(sessionStorage.getItem(ENCOUNTER_STATE_KEY)||'[]'))}catch(e){return new Map()}})();
+function saveEncounterState(){try{sessionStorage.setItem(ENCOUNTER_STATE_KEY,JSON.stringify([...encounterOpen]))}catch(e){}}
+let savedScroll=(()=>{try{return Math.max(0,Number(sessionStorage.getItem('cncv_scroll_y'))||0)}catch(e){return 0}})();
+let renderedTab=null;
+let scrollSaveTimer=null;
+window.addEventListener('scroll',()=>{clearTimeout(scrollSaveTimer);scrollSaveTimer=setTimeout(()=>{try{sessionStorage.setItem('cncv_scroll_y',String(window.scrollY))}catch(e){}},120)},{passive:true});
+window.addEventListener('pagehide',()=>{document.querySelectorAll('details.encounter-details').forEach(d=>encounterOpen.set(d.dataset.encounter,d.open));saveEncounterState();try{sessionStorage.setItem('cncv_scroll_y',String(window.scrollY))}catch(e){}});
 function visibleGames(m){
  const games=m.games||[];
  const named=g=>[...(g.playersA||[]),...(g.playersB||[])].some(n=>String(n??'').trim());
@@ -764,7 +771,7 @@ function visibleGames(m){
  const doubles=triples||games.some(g=>g.value===4&&named(g));
  return games.filter(g=>g.value===2||(g.value===4&&doubles)||(g.value===6&&triples));
 }
-document.addEventListener('toggle',e=>{if(e.target.matches?.('details.encounter-details'))encounterOpen.set(e.target.dataset.encounter,e.target.open)},true);
+document.addEventListener('toggle',e=>{if(e.target.isConnected&&e.target.matches?.('details.encounter-details')){encounterOpen.set(e.target.dataset.encounter,e.target.open);saveEncounterState()}},true);
 function match(m,i){
  let A=m.teamA?teamLink(m.teamA):'<span class="waiting">En attente</span>',B=m.teamB?teamLink(m.teamB):'<span class="waiting">En attente</span>';
  let msg=m.winner?`<div class="win">✓ ${esc(m.winner)} remporte la rencontre${m.tieBreakWinner?(()=>{
@@ -825,7 +832,24 @@ function finals(){
    </section>`:""}
  </div>`;
 }
-function render(){if(!data){document.getElementById("view").innerHTML='<div class="waiting">Chargement des résultats…</div>';return}document.getElementById("view").innerHTML=(active!==0?`<div class="mobile-search-panel team-search-panel"><label for="team-search-input">Rechercher une équipe ou un joueur</label><input id="team-search-input" type="search" autocomplete="off" placeholder="Nom de l’équipe ou du joueur" aria-label="Rechercher une équipe ou un joueur"><div id="team-search-results" aria-live="polite"></div></div>`:"")+(active===0?teamsView():active<=4?groupView(data.groups[active-1]):finals())}
+function renderContent(){if(!data){document.getElementById("view").innerHTML='<div class="waiting">Chargement des résultats…</div>';return}document.getElementById("view").innerHTML=(active!==0?`<div class="mobile-search-panel team-search-panel"><label for="team-search-input">Rechercher une équipe ou un joueur</label><input id="team-search-input" type="search" autocomplete="off" placeholder="Nom de l’équipe ou du joueur" aria-label="Rechercher une équipe ou un joueur"><div id="team-search-results" aria-live="polite"></div></div>`:"")+(active===0?teamsView():active<=4?groupView(data.groups[active-1]):finals())}
+
+function render(){
+ const sameTab=renderedTab===active;
+ const y=renderedTab===null?savedScroll:window.scrollY;
+ const input=document.getElementById('team-search-input');
+ const query=sameTab&&input?input.value:'';
+ const focused=sameTab&&input&&document.activeElement===input;
+ const selection=focused?[input.selectionStart,input.selectionEnd]:null;
+ document.querySelectorAll('details.encounter-details').forEach(d=>encounterOpen.set(d.dataset.encounter,d.open));
+ saveEncounterState();
+ renderContent();
+ if(!data)return;
+ renderedTab=active;
+ const nextInput=document.getElementById('team-search-input');
+ if(sameTab&&nextInput){nextInput.value=query;if(query)searchTeams(query);if(focused){nextInput.focus({preventScroll:true});try{nextInput.setSelectionRange(...selection)}catch(e){}}}
+ requestAnimationFrame(()=>window.scrollTo({top:y,left:window.scrollX,behavior:'instant'}));
+}
 
 function teamLink(name){
  const n=String(name||'');
