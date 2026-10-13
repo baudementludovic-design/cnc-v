@@ -699,12 +699,24 @@ header .header-status{margin-left:auto;align-items:flex-end}
 </style>
 <style>
 /* Dimensions du bandeau des phases finales */
-.finals-shell .finals-hero{width:96%;margin-left:auto;margin-right:auto;border-radius:16px;overflow:hidden}
+.finals-shell .finals-hero{width:86.4%;margin-left:auto;margin-right:auto;border-radius:16px;overflow:hidden}
 </style>
 <style>
 footer{position:relative;min-height:104px;padding-left:118px;padding-right:118px}
 footer .footer-cnc-left{left:18px;top:50%;bottom:auto;transform:translateY(-50%);width:82px;height:auto}
 @media(max-width:850px){footer{min-height:78px;padding-left:80px;padding-right:14px}footer .footer-cnc-left{left:10px;width:58px}}
+</style>
+<style>
+summary.mh{cursor:pointer;list-style:none;position:relative;padding-right:30px}
+summary.mh::-webkit-details-marker{display:none}
+.encounter-details>summary:after{content:"▸";position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--b);font-size:17px}
+.encounter-details[open]>summary:after{content:"▾"}
+.encounter-details:not([open])>summary{border-bottom:0}
+.encounter-expanded>.mh{padding-top:5px}
+</style>
+<style>
+/* Cadre compact lorsque la rencontre est réduite */
+.match:has(>details.encounter-details:not([open])){align-self:start;height:auto;min-height:0}
 </style>
 </head>
 <body>
@@ -735,10 +747,19 @@ function game(g){
  const pb=(g.playersB||[]).map(renderGamePlayer).join("") || '<span class="waiting">Joueurs en attente</span>';
  return `<div class="game ${g.invalid?"invalid-game":""}">
    <div class="players">${pa}</div>
-   <div class="mid ${g.draw?"draw":""}">${esc(g.label)}<br>${sc}${g.invalid?'<span class="pts">Score invalide</span>':!g.decided&&g.scoreA!==null&&g.scoreB!==null?'<span class="pts">En cours</span>':""}${g.draw?'<span class="pts">Match nul</span>':""}${g.stopped?'<span class="stoppedbadge">Partie arrêtée</span>':""}</div>
+   <div class="mid">${esc(g.label)}<br>${sc}${g.invalid?'<span class="pts">Score invalide</span>':!g.stopped&&(!g.decided||(g.scoreA!=null&&g.scoreB!=null&&Number(g.scoreA)===Number(g.scoreB)))&&g.scoreA!=null&&g.scoreB!=null?'<span class="pts">En cours</span>':""}${g.stopped?'<span class="stoppedbadge">Partie arrêtée</span>':""}</div>
    <div class="players r">${pb}</div>
  </div>`;
 }
+const encounterOpen=new Map();
+function visibleGames(m){
+ const games=m.games||[];
+ const named=g=>[...(g.playersA||[]),...(g.playersB||[])].some(n=>String(n??'').trim());
+ const triples=games.some(g=>g.value===6&&named(g));
+ const doubles=triples||games.some(g=>g.value===4&&named(g));
+ return games.filter(g=>g.value===2||(g.value===4&&doubles)||(g.value===6&&triples));
+}
+document.addEventListener('toggle',e=>{if(e.target.matches?.('details.encounter-details'))encounterOpen.set(e.target.dataset.encounter,e.target.open)},true);
 function match(m,i){
  let A=m.teamA?teamLink(m.teamA):'<span class="waiting">En attente</span>',B=m.teamB?teamLink(m.teamB):'<span class="waiting">En attente</span>';
  let msg=m.winner?`<div class="win">✓ ${esc(m.winner)} remporte la rencontre${m.tieBreakWinner?(()=>{
@@ -748,7 +769,16 @@ function match(m,i){
  const opponent=winnerIsA?m.tieBreakTeamB:m.tieBreakTeamA;
  return ` au tir de départage${ws!==null&&ws!==undefined?" · "+esc(ws)+" points":""}${ls!==null&&ls!==undefined?" contre "+esc(ls)+" points pour "+esc(opponent||"l’adversaire"):""}`;
 })():""}</div>`:(m.draw?'<div class="win">Rencontre nulle</div>':'');
- return `<article class="match ${m.finished?"done":""}"><div class="mh"><div class="small">RENCONTRE ${i+1}</div><div class="teams"><div class="team ${m.winner===m.teamA?"winner":""}">${A}</div><div class="total">${m.totalA} – ${m.totalB}</div><div class="team r ${m.winner===m.teamB?"winner":""}">${B}</div></div>${msg}${active!==5&&m.warning?`<div class="match-warning">${esc(m.warning)}</div>`:""}${active!==5&&m.seedA?`<div class="small">${esc(m.seedA)} — ${esc(m.seedB)}</div>`:""}</div><div class="games">${m.games.map(game).join("")}</div></article>`;
+ const key=JSON.stringify([active,m.teamA,m.teamB,i]);
+ const compactable=Number(m.totalA)>=19||Number(m.totalB)>=19||(Number(m.totalA)===18&&Number(m.totalB)===18);
+ const teams=`<div class="teams"><div class="team ${m.winner===m.teamA?"winner":""}">${A}</div><div class="total">${m.totalA} – ${m.totalB}</div><div class="team r ${m.winner===m.teamB?"winner":""}">${B}</div></div>`;
+ const extras=`${msg}${active!==5&&m.warning?`<div class="match-warning">${esc(m.warning)}</div>`:""}${active!==5&&m.seedA?`<div class="small">${esc(m.seedA)} — ${esc(m.seedB)}</div>`:""}`;
+ const games=`<div class="games">${visibleGames(m).map(game).join("")}</div>`;
+ if(compactable){
+  const open=encounterOpen.get(key)!==false;
+  return `<article class="match ${m.finished?"done":""}"><details class="encounter-details" data-encounter="${esc(key)}" ${open?'open':''}><summary class="mh" aria-label="Afficher ou réduire la rencontre">${teams}</summary><div class="encounter-expanded"><div class="mh"><div class="small">RENCONTRE ${i+1}</div>${extras}</div>${games}</div></details></article>`;
+ }
+ return `<article class="match ${m.finished?"done":""}"><div class="mh"><div class="small">RENCONTRE ${i+1}</div>${teams}${extras}</div>${games}</article>`;
 }
 function ranking(g){
  return `<div class="rankingbox"><div class="rankingtitle">Classement de la poule</div><div class="rankingtable">
@@ -757,7 +787,7 @@ function ranking(g){
  </div></div>`;
 }
 function groupView(g){
- return `<div class="group-summary">${esc(g.name)}</div>`+ranking(g)+g.rounds.map(rr=>`<div class="round"><h2>${rr.round}<sup>${rr.round===1?"er":"e"}</sup> tour</h2><span class="tag">2 rencontres</span></div><div class="grid">${rr.matches.map(match).join("")}</div>`).join("");
+ return `<div class="group-summary">${esc(g.name)}</div>`+ranking(g)+g.rounds.filter(rr=>rr.round===1||g.rounds.find(prev=>prev.round===rr.round-1)?.matches.some(m=>!!m.winner)).map(rr=>`<div class="round"><h2>${rr.round}<sup>${rr.round===1?"er":"e"}</sup> tour</h2><span class="tag">2 rencontres</span></div><div class="grid">${rr.matches.map(match).join("")}</div>`).join("");
 }
 function finals(){
  const f=data.finals;
