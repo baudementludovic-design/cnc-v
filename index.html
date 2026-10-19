@@ -735,7 +735,7 @@ footer .footer-partners .footer-partner-logo{width:110px;height:62px;object-fit:
 <script>
 "use strict";
 /* COLLE ICI L'URL /exec OBTENUE APRÈS LE DÉPLOIEMENT APPS SCRIPT */
-const API_URL="https://script.google.com/macros/s/AKfycbzImigIYkYBWys5gz7gj7v84j31nqrqBqueu7sm68n9MIh5FCpgamrNE9SbFrjHtsdN/exec"; // Coller ici l’URL /exec du déploiement CNC_Veterans_API.gs
+const API_URL="https://script.google.com/macros/s/AKfycbwl4RrpZGdzlm6IP8GIZUBH-UtpagkTARcH7jLJZQSGwPGZnLvRfMjsghdg3490B1ke/exec"; // Coller ici l’URL /exec du déploiement CNC_Veterans_API.gs
 let data=null,active=(()=>{try{const v=Number(sessionStorage.getItem("cncv_active_tab"));return Number.isInteger(v)&&v>=0&&v<=5?v:0}catch(e){return 0}})(),auto=true,timer=null;
 const labels=["Equipes","Groupe 1","Groupe 2","Groupe 3","Groupe 4","Phases finales"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -746,6 +746,7 @@ function renderGamePlayer(p){
  return `<span class="player replacement-player"><span>${esc(names[0])} <span class="roster-replaced">[Remplacé]</span></span><span>${esc(names[1])} <span class="roster-substitute">[Remplaçant]</span></span></span>`;
 }
 function game(g){
+ if(g.notPlayed)return `<div class="game"><div class="players">${(g.playersA||[]).map(renderGamePlayer).join("")}</div><div class="mid">${esc(g.label)}<br><span class="stoppedbadge">Triplettes non disputées</span></div><div class="players r">${(g.playersB||[]).map(renderGamePlayer).join("")}</div></div>`;
  let sc=(g.scoreA==null&&g.scoreB==null)?"—":(()=>{
   const a=Number(g.scoreA),b=Number(g.scoreB);
   const aWins=g.decided&&g.scoreA!=null&&g.scoreB!=null&&Number.isFinite(a)&&Number.isFinite(b)&&a===13&&a>b;
@@ -771,7 +772,7 @@ window.addEventListener('pagehide',()=>{document.querySelectorAll('details.encou
 function visibleGames(m){
  const games=m.games||[];
  const named=g=>[...(g.playersA||[]),...(g.playersB||[])].some(n=>String(n??'').trim());
- const triples=games.some(g=>g.value===6&&named(g));
+ const triples=games.some(g=>g.value===6&&(named(g)||g.notPlayed));
  const doubles=triples||games.some(g=>g.value===4&&named(g));
  return games.filter(g=>g.value===2||(g.value===4&&doubles)||(g.value===6&&triples));
 }
