@@ -811,7 +811,7 @@ function ranking(g){
  </div></div>`;
 }
 function groupView(g){
- return `<div class="group-summary">${esc(g.name)}</div>`+ranking(g)+g.rounds.filter(rr=>rr.round===1||g.rounds.find(prev=>prev.round===rr.round-1)?.matches.some(m=>!!m.winner)).map(rr=>`<div class="round"><h2>${rr.round}<sup>${rr.round===1?"er":"e"}</sup> tour</h2><span class="tag">2 rencontres</span></div><div class="grid">${rr.matches.map(match).join("")}</div>`).join("");
+ return `<div class="group-summary">${esc(g.name)}</div>`+ranking(g)+g.rounds.filter(rr=>rr.round===1||g.rounds.find(prev=>prev.round===rr.round-1)?.matches.some(m=>m.finished||!!m.winner)).map(rr=>`<div class="round"><h2>${rr.round}<sup>${rr.round===1?"er":"e"}</sup> tour</h2><span class="tag">2 rencontres</span></div><div class="grid">${rr.matches.map(match).join("")}</div>`).join("");
 }
 function quarterWithConfirmedTeams(m){
  const allowed=team=>{const group=(data.groups||[]).find(g=>(g.teams||[]).includes(team)||(g.ranking||[]).some(r=>r.team===team));return !!group&&(group.ranking||[]).reduce((sum,r)=>sum+(Number(r.played)||0),0)===12;};
