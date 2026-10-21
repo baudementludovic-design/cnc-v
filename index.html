@@ -844,7 +844,19 @@ function finals(){
    </section>`:""}
  </div>`;
 }
-function renderContent(){if(!data){document.getElementById("view").innerHTML='<div class="waiting">Chargement des résultats…</div>';return}document.getElementById("view").innerHTML=(active!==0?`<div class="mobile-search-panel team-search-panel"><label for="team-search-input">Rechercher une équipe ou un joueur</label><input id="team-search-input" type="search" autocomplete="off" placeholder="Nom de l’équipe ou du joueur" aria-label="Rechercher une équipe ou un joueur"><div id="team-search-results" aria-live="polite"></div></div>`:"")+(active===0?teamsView():active<=4?groupView(data.groups[active-1]):finals())}
+function sortGroupTieBreaks(groups){
+ (groups||[]).forEach(g=>{
+  const ranking=g.ranking||[],positions=[];
+  ranking.forEach((r,i)=>{if(r.tieBreak)positions.push(i)});
+  if(positions.length<2)return;
+  const selected=positions.map(i=>ranking[i]);
+  if(selected.some(r=>r.tieBreakScore===null||r.tieBreakScore===undefined||r.tieBreakScore===''||!Number.isFinite(Number(r.tieBreakScore))))return;
+  selected.sort((a,b)=>Number(b.tieBreakScore)-Number(a.tieBreakScore));
+  positions.forEach((pos,i)=>{ranking[pos]=selected[i];ranking[pos].unresolved=selected.some((r,j)=>j!==i&&Number(r.tieBreakScore)===Number(selected[i].tieBreakScore));});
+  ranking.forEach((r,i)=>{r.rank=i+1;r.qualified=!!g.complete&&i<2&&!r.unresolved;});
+ });
+}
+function renderContent(){if(data)sortGroupTieBreaks(data.groups);if(!data){document.getElementById("view").innerHTML='<div class="waiting">Chargement des résultats…</div>';return}document.getElementById("view").innerHTML=(active!==0?`<div class="mobile-search-panel team-search-panel"><label for="team-search-input">Rechercher une équipe ou un joueur</label><input id="team-search-input" type="search" autocomplete="off" placeholder="Nom de l’équipe ou du joueur" aria-label="Rechercher une équipe ou un joueur"><div id="team-search-results" aria-live="polite"></div></div>`:"")+(active===0?teamsView():active<=4?groupView(data.groups[active-1]):finals())}
 
 function render(){
  const sameTab=renderedTab===active;
