@@ -830,17 +830,17 @@ function finals(){
      <p>Tableau final · quarts de finale, demi-finales et finale</p>
      ${f.final && f.final[0] && f.final[0].winner ? `<div class="champion-banner"><div class="champion-label">Vainqueur du CNC Vétérans</div><div class="champion-name">🏆 ${teamLink(f.final[0].winner)}</div></div>` : ""}
    </div>
-   ${(data.groups||[]).some(g=>(g.ranking||[]).some(r=>r.qualified))?`<section class="final-stage">
-     <div class="stage-head"><div class="stage-title">1/4 de finale <span class="stage-count">4 rencontres</span></div></div>
-     <div class="quarter-grid">${f.quarters.map((m,i)=>match(quarterWithConfirmedTeams(m),i)).join("")}</div>
+   ${(f.semis||[]).some(m=>!!m.winner)?`<section class="final-stage">
+     <div class="stage-head"><div class="stage-title">Finale <span class="stage-count">1 rencontre</span></div></div>
+     <div class="final-one">${f.final.map(match).join("")}</div>
    </section>`:""}
    ${(f.quarters||[]).some(m=>!!m.winner)?`<section class="final-stage">
      <div class="stage-head"><div class="stage-title">1/2 finale <span class="stage-count">2 rencontres</span></div></div>
      <div class="semi-grid">${f.semis.map(match).join("")}</div>
    </section>`:""}
-   ${(f.semis||[]).some(m=>!!m.winner)?`<section class="final-stage">
-     <div class="stage-head"><div class="stage-title">Finale <span class="stage-count">1 rencontre</span></div></div>
-     <div class="final-one">${f.final.map(match).join("")}</div>
+   ${(data.groups||[]).some(g=>(g.ranking||[]).some(r=>r.qualified))?`<section class="final-stage">
+     <div class="stage-head"><div class="stage-title">1/4 de finale <span class="stage-count">4 rencontres</span></div></div>
+     <div class="quarter-grid">${f.quarters.map((m,i)=>match(quarterWithConfirmedTeams(m),i)).join("")}</div>
    </section>`:""}
  </div>`;
 }
